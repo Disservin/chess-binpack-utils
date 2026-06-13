@@ -1,0 +1,11 @@
+[package]
+name = "chess-binpack-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5.8", features = ["derive"] }
+sfbinpack = "0.6.2"
+thiserror = "2.0.12"
+viriformat = "3.0.0"
