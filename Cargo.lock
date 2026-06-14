@@ -81,6 +81,7 @@ name = "chess-binpack-utils"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bulletformat",
  "clap",
  "sfbinpack",
  "thiserror",

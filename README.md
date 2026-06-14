@@ -1,6 +1,6 @@
 # chess-binpack-utils
 
-Small Rust CLI for converting chess training data between `sfbinpack` and `viriformat`.
+Small Rust CLI for converting chess training data between `sfbinpack`, `viriformat`, and `bulletformat`.
 
 ## What It Does
 
@@ -12,10 +12,14 @@ Supported conversions:
 
 - `sfbinpack` -> `viriformat`
 - `viriformat` -> `sfbinpack`
+- `sfbinpack` -> `bulletformat`
+- `viriformat` -> `bulletformat`
+- `bulletplain` -> `bulletformat`
 
 ## Limitations
 
 - Converting a format to itself is rejected
+- `bulletformat` -> `sfbinpack` and `bulletformat` -> `viriformat` are rejected because `bulletformat` stores standalone positions, not move sequences
 - `viriformat` input using Chess960-style castling rights is not supported when writing `viriformat` output
 - `viriformat` game outcomes must be representable as win, draw, or loss in `sfbinpack`
 
@@ -25,10 +29,15 @@ Supported conversions:
 cargo build
 ```
 
+Format names:
+
+- `bulletformat`: Bullet's binary packed chess format
+- `bulletplain`: Bullet's plain-text chess format, where each line is `<FEN> | <score> | <result>`
+
 ## Usage
 
 ```bash
-cargo run -- convert --from <sfbinpack|viriformat> --to <sfbinpack|viriformat> --input <INPUT> --output <OUTPUT>
+cargo run -- convert --from <sfbinpack|viriformat|bulletformat|bulletplain> --to <sfbinpack|viriformat|bulletformat> --input <INPUT> --output <OUTPUT>
 ```
 
 Example:
@@ -50,6 +59,25 @@ cargo run -- convert \
   --input out.viri \
   --output roundtrip.binpack
 ```
+
+Bullet plain-text to bulletformat:
+
+```bash
+cargo run -- convert \
+  --from bulletplain \
+  --to bulletformat \
+  --input positions.txt \
+  --output positions.bf
+```
+
+Where each input line is:
+
+```text
+<FEN> | <score> | <result>
+```
+
+- `score` is white-relative centipawns
+- `result` is white-relative and must be `1.0`, `0.5`, or `0.0`
 
 ## Test
 

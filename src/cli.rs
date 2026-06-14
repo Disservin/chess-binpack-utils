@@ -22,6 +22,8 @@ pub enum Command {
 pub enum Format {
     Sfbinpack,
     Viriformat,
+    Bulletformat,
+    Bulletplain,
 }
 
 impl Format {
@@ -29,6 +31,8 @@ impl Format {
         match self {
             Self::Sfbinpack => "sfbinpack",
             Self::Viriformat => "viriformat",
+            Self::Bulletformat => "bulletformat",
+            Self::Bulletplain => "bulletplain",
         }
     }
 }
@@ -53,6 +57,9 @@ pub fn run(cli: Cli) -> Result<()> {
 
 fn convert(command: ConvertCommand) -> Result<()> {
     match (command.from, command.to) {
+        (Format::Bulletplain, Format::Bulletformat) => {
+            backend::bulletformat::convert_text_file(&command.input, &command.output)
+        }
         (Format::Sfbinpack, Format::Viriformat) => {
             let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
             let mut writer = backend::viriformat::GameWriter::create(&command.output)?;
@@ -60,6 +67,14 @@ fn convert(command: ConvertCommand) -> Result<()> {
                 writer.write_game(&game)?;
             }
             Ok(())
+        }
+        (Format::Sfbinpack, Format::Bulletformat) => {
+            let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
+            let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
+            while let Some(game) = reader.next_game()? {
+                writer.write_game(&game)?;
+            }
+            writer.finish()
         }
         (Format::Viriformat, Format::Sfbinpack) => {
             let mut reader = backend::viriformat::GameReader::open(&command.input)?;
@@ -69,6 +84,14 @@ fn convert(command: ConvertCommand) -> Result<()> {
             }
             writer.finish();
             Ok(())
+        }
+        (Format::Viriformat, Format::Bulletformat) => {
+            let mut reader = backend::viriformat::GameReader::open(&command.input)?;
+            let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
+            while let Some(game) = reader.next_game()? {
+                writer.write_game(&game)?;
+            }
+            writer.finish()
         }
         (from, to) if from == to => Err(Error::UnsupportedConversion {
             from: from.name(),

@@ -25,6 +25,10 @@ pub enum Error {
     Viriformat(#[from] anyhow::Error),
     #[error("viriformat data is malformed: {0}")]
     InvalidViriformat(String),
+    #[error("bulletformat data is malformed: {0}")]
+    InvalidBulletformat(String),
+    #[error("invalid FEN: {0}")]
+    InvalidFen(String),
     #[error("sfbinpack position could not be expressed as FEN: {0:?}")]
     SfbinpackFen(sfbinpack::chess::position::PositionError),
     #[error("sfbinpack FEN could not be parsed: {0:?}")]

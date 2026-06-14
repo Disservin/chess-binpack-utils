@@ -42,6 +42,29 @@ pub fn game_result_to_viri_outcome(result: GameResult) -> GameOutcome {
     }
 }
 
+pub fn game_result_to_white_relative(result: GameResult) -> f32 {
+    match result {
+        GameResult::WhiteWin => 1.0,
+        GameResult::Draw => 0.5,
+        GameResult::BlackWin => 0.0,
+    }
+}
+
+pub fn score_to_white_relative(score: i16, fen: &str) -> Result<i16> {
+    let side_to_move = fen
+        .split_whitespace()
+        .nth(1)
+        .ok_or_else(|| Error::InvalidFen(format!("missing side-to-move in FEN: {fen}")))?;
+
+    match side_to_move {
+        "w" => Ok(score),
+        "b" => Ok(-score),
+        _ => Err(Error::InvalidFen(format!(
+            "invalid side-to-move in FEN: {fen}"
+        ))),
+    }
+}
+
 pub fn sf_move_to_uci(mv: SfMove) -> String {
     mv.as_uci()
 }
@@ -222,5 +245,17 @@ mod tests {
                 assert_eq!(sf_result_to_game_result(sf, side).unwrap(), result);
             }
         }
+    }
+
+    #[test]
+    fn score_maps_to_white_relative() {
+        assert_eq!(
+            score_to_white_relative(42, "8/8/8/8/8/8/8/8 w - - 0 1").unwrap(),
+            42
+        );
+        assert_eq!(
+            score_to_white_relative(42, "8/8/8/8/8/8/8/8 b - - 0 1").unwrap(),
+            -42
+        );
     }
 }

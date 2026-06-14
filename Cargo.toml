@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0"
+bulletformat = "1.8.0"
 clap = { version = "4.5.8", features = ["derive"] }
 sfbinpack = "0.6.2"
 thiserror = "2.0.12"
