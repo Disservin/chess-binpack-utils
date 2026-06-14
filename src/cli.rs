@@ -63,40 +63,23 @@ fn convert(command: ConvertCommand) -> Result<()> {
         (Format::Sfbinpack, Format::Viriformat) => {
             let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
             let mut writer = backend::viriformat::GameWriter::create(&command.output)?;
-            while let Some(game) = reader.next_game()? {
-                writer.write_game(&game)?;
-            }
-            Ok(())
+            backend::stream_convert(&mut reader, &mut writer)
         }
         (Format::Sfbinpack, Format::Bulletformat) => {
             let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
             let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
-            while let Some(game) = reader.next_game()? {
-                writer.write_game(&game)?;
-            }
-            writer.finish()
+            backend::stream_convert(&mut reader, &mut writer)
         }
         (Format::Viriformat, Format::Sfbinpack) => {
             let mut reader = backend::viriformat::GameReader::open(&command.input)?;
             let mut writer = backend::sfbinpack::GameWriter::create(&command.output)?;
-            while let Some(game) = reader.next_game()? {
-                writer.write_game(&game)?;
-            }
-            writer.finish();
-            Ok(())
+            backend::stream_convert(&mut reader, &mut writer)
         }
         (Format::Viriformat, Format::Bulletformat) => {
             let mut reader = backend::viriformat::GameReader::open(&command.input)?;
             let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
-            while let Some(game) = reader.next_game()? {
-                writer.write_game(&game)?;
-            }
-            writer.finish()
+            backend::stream_convert(&mut reader, &mut writer)
         }
-        (from, to) if from == to => Err(Error::UnsupportedConversion {
-            from: from.name(),
-            to: to.name(),
-        }),
         (from, to) => Err(Error::UnsupportedConversion {
             from: from.name(),
             to: to.name(),

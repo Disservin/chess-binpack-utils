@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use bulletformat::BulletFormat;
 use bulletformat::ChessBoard;
 
+use crate::backend;
 use crate::convert::{game_result_to_white_relative, score_to_white_relative};
 use crate::error::{Error, Result};
 use crate::model::{GameRecord, PositionMoveEval};
@@ -76,6 +77,16 @@ impl PositionWriter {
         })?;
         self.buffer.clear();
         Ok(())
+    }
+}
+
+impl backend::GameWriter for PositionWriter {
+    fn write_game(&mut self, game: &GameRecord) -> Result<()> {
+        Self::write_game(self, game)
+    }
+
+    fn finish(&mut self) -> Result<()> {
+        Self::finish(self)
     }
 }
 

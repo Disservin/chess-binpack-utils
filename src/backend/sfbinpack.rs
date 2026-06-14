@@ -3,6 +3,7 @@ use std::path::Path;
 
 use sfbinpack::{CompressedTrainingDataEntryReader, CompressedTrainingDataEntryWriter};
 
+use crate::backend;
 use crate::convert::{game_result_to_sf_result, sf_move_to_uci, uci_to_sf_move};
 use crate::error::{Error, Result};
 use crate::model::{GameRecord, PositionMoveEval};
@@ -50,6 +51,12 @@ impl GameReader {
     }
 }
 
+impl backend::GameReader for GameReader {
+    fn next_game(&mut self) -> Result<Option<GameRecord>> {
+        Self::next_game(self)
+    }
+}
+
 pub struct GameWriter {
     writer: CompressedTrainingDataEntryWriter<File>,
 }
@@ -87,6 +94,17 @@ impl GameWriter {
 
     pub fn finish(&mut self) {
         self.writer.flush_and_end();
+    }
+}
+
+impl backend::GameWriter for GameWriter {
+    fn write_game(&mut self, game: &GameRecord) -> Result<()> {
+        Self::write_game(self, game)
+    }
+
+    fn finish(&mut self) -> Result<()> {
+        Self::finish(self);
+        Ok(())
     }
 }
 

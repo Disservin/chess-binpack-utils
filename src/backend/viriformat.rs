@@ -5,6 +5,7 @@ use std::path::Path;
 use viriformat::chess::board::{Board, DrawType, GameOutcome, WinType};
 use viriformat::dataformat::Game;
 
+use crate::backend;
 use crate::convert::{
     game_result_to_viri_outcome, sf_move_to_uci, uci_to_viri_move, viri_move_to_sf_move,
 };
@@ -37,6 +38,12 @@ impl GameReader {
                 source,
             }),
         }
+    }
+}
+
+impl backend::GameReader for GameReader {
+    fn next_game(&mut self) -> Result<Option<GameRecord>> {
+        Self::next_game(self)
     }
 }
 
@@ -83,6 +90,12 @@ impl GameWriter {
                 source,
             })?;
         Ok(())
+    }
+}
+
+impl backend::GameWriter for GameWriter {
+    fn write_game(&mut self, game: &GameRecord) -> Result<()> {
+        Self::write_game(self, game)
     }
 }
 
