@@ -24,6 +24,7 @@ The main CLI exposes four operations:
 - `unique`
 - `inspect`
 - `benchmark`
+- `validate`
 
 After that, you can run commands directly:
 
@@ -32,6 +33,7 @@ chess-binpack-utils convert --input test/ep1.binpack --output out.viri
 chess-binpack-utils unique --input test/ep1.binpack
 chess-binpack-utils inspect --input test/ep1.binpack
 chess-binpack-utils benchmark --input test/ep1.binpack
+chess-binpack-utils validate --input test/ep1.binpack
 ```
 
 Formats are inferred from file extensions when possible:
@@ -50,6 +52,7 @@ Format names:
 
 - Converts between supported formats
 - Counts unique positions in game-oriented formats
+- Validates game-oriented formats by replaying moves
 - Benchmarks read throughput across supported formats
 
 ### Convert
@@ -205,6 +208,30 @@ Examples:
 chess-binpack-utils benchmark --input test/ep1.binpack
 chess-binpack-utils benchmark --input out.viri
 chess-binpack-utils benchmark --input positions.bf
+```
+
+### Validate
+
+```bash
+chess-binpack-utils validate --input <INPUT>
+```
+
+This replays each game and verifies that every move is legal.
+
+Supported backends:
+
+- `sfbinpack`
+- `viriformat`
+
+The backend is inferred from the input file extension when possible:
+
+- `.vf`, `.viri`, `.viriformat` -> `viriformat`
+- `.sf`, `.sfbinpack`, `.binpack` -> `sfbinpack`
+
+You can also set it explicitly:
+
+```bash
+chess-binpack-utils validate --backend <sfbinpack|viriformat> --input <INPUT>
 ```
 
 ## Limitations

@@ -7,6 +7,7 @@ pub mod inspect;
 pub mod interrupt;
 pub mod model;
 pub mod unique;
+pub mod validate;
 
 #[cfg(test)]
 mod tests {
@@ -41,6 +42,33 @@ mod tests {
         let parsed = read_sfbinpack_games(&path);
 
         assert_eq!(parsed, games);
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn game_record_validate_accepts_legal_moves() {
+        sample_games()[0].validate().unwrap();
+    }
+
+    #[test]
+    fn game_record_validate_rejects_illegal_moves() {
+        let mut game = sample_games()[0].clone();
+        game.positions[1].uci = "e1e2".to_string();
+
+        let error = game.validate().unwrap_err();
+        assert!(error.to_string().contains("illegal move at index 1 (e1e2)"));
+    }
+
+    #[test]
+    fn sfbinpack_writer_rejects_illegal_games() {
+        let path = temp_path("binpack");
+        let mut game = sample_games()[0].clone();
+        game.positions[1].uci = "e1e2".to_string();
+
+        let mut writer = sfbinpack::GameWriter::create(&path).unwrap();
+        let error = writer.write_game(&game).unwrap_err();
+        assert!(error.to_string().contains("illegal move at index 1 (e1e2)"));
 
         let _ = std::fs::remove_file(path);
     }

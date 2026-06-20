@@ -8,6 +8,7 @@ use crate::error::{Error, Result};
 use crate::inspect;
 use crate::interrupt;
 use crate::unique;
+use crate::validate;
 
 #[derive(Debug, Parser)]
 #[command(name = "chess-binpack-utils")]
@@ -23,6 +24,7 @@ pub enum Command {
     Unique(UniqueCommand),
     Inspect(InspectCommand),
     Benchmark(BenchmarkCommand),
+    Validate(ValidateCommand),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -159,12 +161,21 @@ pub struct InspectCommand {
     pub limit: Option<u128>,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct ValidateCommand {
+    #[arg(long, value_enum)]
+    pub backend: Option<Backend>,
+    #[arg(long)]
+    pub input: PathBuf,
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Convert(command) => convert(command),
         Command::Unique(command) => unique_command(command),
         Command::Inspect(command) => inspect_command(command),
         Command::Benchmark(command) => benchmark_command(command),
+        Command::Validate(command) => validate_command(command),
     }
 }
 
@@ -232,4 +243,9 @@ fn benchmark_command(command: BenchmarkCommand) -> Result<()> {
 fn inspect_command(command: InspectCommand) -> Result<()> {
     interrupt::install_handler()?;
     inspect::run(&command)
+}
+
+fn validate_command(command: ValidateCommand) -> Result<()> {
+    interrupt::install_handler()?;
+    validate::run(&command)
 }
