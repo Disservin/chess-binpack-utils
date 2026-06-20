@@ -1,13 +1,12 @@
 # chess-binpack-utils
 
-Small Rust CLI for converting chess training data between `sfbinpack`, `viriformat`, and `bulletformat`, and for counting unique positions in game-oriented inputs.
+General-purpose Rust CLI for working with chess binpack data.
 
 ## What It Does
 
-- Reads game-oriented training data from one backend
-- Streams it into the other backend
-- Preserves move sequence, evaluation score, ply, initial FEN, and game result
-- Counts unique positions in `sfbinpack` and `viriformat` files using Zobrist hashes
+- Converts between supported formats
+- Counts unique positions in game-oriented formats
+- Benchmarks read throughput across supported formats
 
 Supported conversions:
 
@@ -35,7 +34,20 @@ Format names:
 - `bulletformat`: Bullet's binary packed chess format
 - `bulletplain`: Bullet's plain-text chess format, where each line is `<FEN> | <score> | <result>`
 
-## Usage
+## Commands
+
+The main CLI exposes three operations:
+
+- `convert`
+- `unique`
+- `benchmark`
+
+Formats are inferred from file extensions when possible:
+
+- `.vf`, `.viri`, `.viriformat` -> `viriformat`
+- `.sf`, `.sfbinpack`, `.binpack` -> `sfbinpack`
+- `.bf`, `.bullet`, `.bulletformat` -> `bulletformat`
+- `.txt`, `.bulletplain` -> `bulletplain`
 
 ### Convert
 
@@ -46,13 +58,6 @@ cargo run -- convert --input <INPUT> --output <OUTPUT>
 To stop after a fixed number of entries, pass `--limit <N>`.
 For game-based formats, the limit counts positions/training entries and may truncate the last game.
 For `bulletplain -> bulletformat`, the limit counts non-empty input lines.
-
-Formats are inferred from file extensions when possible:
-
-- `.vf`, `.viri`, `.viriformat` -> `viriformat`
-- `.sf`, `.sfbinpack`, `.binpack` -> `sfbinpack`
-- `.bf`, `.bullet`, `.bulletformat` -> `bulletformat`
-- `.txt`, `.bulletplain` -> `bulletplain`
 
 You can still override inference explicitly:
 
@@ -135,7 +140,36 @@ To stop after a fixed number of positions, pass `--limit <N>`:
 cargo run -- unique --input test/ep1.binpack --limit 1000
 ```
 
-Where each input line is:
+### Benchmark
+
+```bash
+cargo run --release -- benchmark --input <INPUT>
+```
+
+This scans the input and reports throughput.
+
+Supported formats:
+
+- `sfbinpack`
+- `viriformat`
+- `bulletformat`
+- `bulletplain`
+
+You can override inference explicitly:
+
+```bash
+cargo run --release -- benchmark --format <sfbinpack|viriformat|bulletformat|bulletplain> --input <INPUT>
+```
+
+Examples:
+
+```bash
+cargo run --release -- benchmark --input test/ep1.binpack
+cargo run --release -- benchmark --input out.viri
+cargo run --release -- benchmark --input positions.bf
+```
+
+For `bulletplain`, each input line is:
 
 ```text
 <FEN> | <score> | <result>
@@ -150,37 +184,7 @@ Where each input line is:
 cargo test
 ```
 
-The test suite includes round-trip checks for both formats and a fixture-based conversion test using `test/ep1.binpack`.
-
-## Read Speed Test
-
-The repo also includes a small benchmark binary for measuring read throughput:
-
-```bash
-cargo run --release --bin read-speed -- <INPUT>
-```
-
-It supports `viriformat`, `sfbinpack`, and `bulletformat` files.
-The input format is inferred from the file extension using the same mapping as `convert`.
-
-Examples:
-
-```bash
-cargo run --release --bin read-speed -- test/ep1.binpack
-cargo run --release --bin read-speed -- out.viri
-cargo run --release --bin read-speed -- positions.bf
-```
-
-You can also pass the format explicitly before the path:
-
-```bash
-cargo run --release --bin read-speed -- sfbinpack test/ep1.binpack
-cargo run --release --bin read-speed -- viriformat out.viri
-cargo run --release --bin read-speed -- bulletformat positions.bf
-```
-
-For `viriformat` and `sfbinpack`, it reports throughput in games/sec and positions/sec.
-For `bulletformat`, it reports positions/sec.
+The test suite includes round-trip checks for both formats, unique-position tests, and a fixture-based conversion test using `test/ep1.binpack`.
 
 ## License
 

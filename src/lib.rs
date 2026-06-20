@@ -1,4 +1,5 @@
 pub mod backend;
+pub mod benchmark;
 pub mod cli;
 pub mod convert;
 pub mod error;

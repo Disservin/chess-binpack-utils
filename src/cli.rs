@@ -3,13 +3,14 @@ use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 
 use crate::backend;
+use crate::benchmark;
 use crate::error::{Error, Result};
 use crate::interrupt;
 use crate::unique;
 
 #[derive(Debug, Parser)]
 #[command(name = "chess-binpack-utils")]
-#[command(about = "Convert chess training data between binpack backends")]
+#[command(about = "General-purpose tool for working with chess binpack data")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -19,6 +20,7 @@ pub struct Cli {
 pub enum Command {
     Convert(ConvertCommand),
     Unique(UniqueCommand),
+    Benchmark(BenchmarkCommand),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -35,7 +37,7 @@ impl Backend {
         }
     }
 
-    fn from_path(path: &std::path::Path) -> Result<Self> {
+    pub fn from_path(path: &std::path::Path) -> Result<Self> {
         let extension = path
             .extension()
             .and_then(|extension| extension.to_str())
@@ -71,7 +73,7 @@ impl Format {
         }
     }
 
-    fn from_path(path: &std::path::Path) -> Result<Self> {
+    pub fn from_path(path: &std::path::Path) -> Result<Self> {
         let extension = path
             .extension()
             .and_then(|extension| extension.to_str())
@@ -88,6 +90,28 @@ impl Format {
                 "unknown file extension for format inference: {extension}"
             ))),
         }
+    }
+
+    pub const fn item_label(self) -> &'static str {
+        match self {
+            Self::Viriformat | Self::Sfbinpack => "games",
+            Self::Bulletformat | Self::Bulletplain => "positions",
+        }
+    }
+
+    pub const fn item_label_singular(self) -> &'static str {
+        match self {
+            Self::Viriformat | Self::Sfbinpack => "game",
+            Self::Bulletformat | Self::Bulletplain => "position",
+        }
+    }
+
+    pub const fn position_label(self) -> &'static str {
+        "positions"
+    }
+
+    pub const fn position_label_singular(self) -> &'static str {
+        "position"
     }
 }
 
@@ -115,10 +139,19 @@ pub struct UniqueCommand {
     pub limit: Option<u128>,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct BenchmarkCommand {
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
+    #[arg(long)]
+    pub input: PathBuf,
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Convert(command) => convert(command),
         Command::Unique(command) => unique_command(command),
+        Command::Benchmark(command) => benchmark_command(command),
     }
 }
 
@@ -176,4 +209,9 @@ fn unique_command(command: UniqueCommand) -> Result<()> {
     let unique = unique::unique_positions_from_path(&command.input, limit, backend)?;
     println!("{unique}");
     Ok(())
+}
+
+fn benchmark_command(command: BenchmarkCommand) -> Result<()> {
+    interrupt::install_handler()?;
+    benchmark::run(&command)
 }
