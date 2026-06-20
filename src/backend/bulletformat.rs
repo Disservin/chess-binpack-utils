@@ -91,15 +91,19 @@ impl backend::GameWriter for PositionWriter {
     }
 }
 
-pub fn convert_text_file(input: &Path, output: &Path) -> Result<()> {
+pub fn convert_text_file(input: &Path, output: &Path, limit: Option<u128>) -> Result<()> {
     let file = File::open(input).map_err(|source| Error::Io {
         path: input.to_path_buf(),
         source,
     })?;
     let mut writer = PositionWriter::create(output)?;
+    let mut converted = 0u128;
 
     for (index, line) in BufReader::new(file).lines().enumerate() {
         if interrupt::is_requested() {
+            break;
+        }
+        if limit.is_some_and(|limit| converted >= limit) {
             break;
         }
 
@@ -116,6 +120,7 @@ pub fn convert_text_file(input: &Path, output: &Path) -> Result<()> {
             Error::InvalidBulletformat(format!("line {}: {source}", index + 1))
         })?;
         writer.buffer.push(board);
+        converted += 1;
 
         if writer.buffer.len() >= FLUSH_BATCH_SIZE {
             writer.flush()?;

@@ -40,6 +40,10 @@ Format names:
 cargo run -- convert --input <INPUT> --output <OUTPUT>
 ```
 
+To stop after a fixed number of entries, pass `--limit <N>`.
+For game-based formats, the limit counts positions/training entries and may truncate the last game.
+For `bulletplain -> bulletformat`, the limit counts non-empty input lines.
+
 Formats are inferred from file extensions when possible:
 
 - `.vf`, `.viri`, `.viriformat` -> `viriformat`
@@ -59,6 +63,15 @@ Example with inferred formats:
 cargo run -- convert \
   --input test/ep1.binpack \
   --output out.viri
+```
+
+Example with a limit:
+
+```bash
+cargo run -- convert \
+  --input test/ep1.binpack \
+  --output out.viri \
+  --limit 1000
 ```
 
 Example with explicit formats:

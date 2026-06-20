@@ -65,6 +65,8 @@ pub struct ConvertCommand {
     pub input: PathBuf,
     #[arg(long)]
     pub output: PathBuf,
+    #[arg(long)]
+    pub limit: Option<u128>,
 }
 
 pub fn run(cli: Cli) -> Result<()> {
@@ -85,27 +87,27 @@ fn convert(command: ConvertCommand) -> Result<()> {
 
     match (from, to) {
         (Format::Bulletplain, Format::Bulletformat) => {
-            backend::bulletformat::convert_text_file(&command.input, &command.output)
+            backend::bulletformat::convert_text_file(&command.input, &command.output, command.limit)
         }
         (Format::Sfbinpack, Format::Viriformat) => {
             let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
             let mut writer = backend::viriformat::GameWriter::create(&command.output)?;
-            backend::stream_convert(&mut reader, &mut writer)
+            backend::stream_convert(&mut reader, &mut writer, command.limit)
         }
         (Format::Sfbinpack, Format::Bulletformat) => {
             let mut reader = backend::sfbinpack::GameReader::open(&command.input)?;
             let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
-            backend::stream_convert(&mut reader, &mut writer)
+            backend::stream_convert(&mut reader, &mut writer, command.limit)
         }
         (Format::Viriformat, Format::Sfbinpack) => {
             let mut reader = backend::viriformat::GameReader::open(&command.input)?;
             let mut writer = backend::sfbinpack::GameWriter::create(&command.output)?;
-            backend::stream_convert(&mut reader, &mut writer)
+            backend::stream_convert(&mut reader, &mut writer, command.limit)
         }
         (Format::Viriformat, Format::Bulletformat) => {
             let mut reader = backend::viriformat::GameReader::open(&command.input)?;
             let mut writer = backend::bulletformat::PositionWriter::create(&command.output)?;
-            backend::stream_convert(&mut reader, &mut writer)
+            backend::stream_convert(&mut reader, &mut writer, command.limit)
         }
         (from, to) => Err(Error::UnsupportedConversion {
             from: from.name(),

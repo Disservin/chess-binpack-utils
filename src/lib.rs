@@ -52,9 +52,7 @@ mod tests {
 
         let mut reader = sfbinpack::GameReader::open(&input).unwrap();
         let mut writer = viriformat::GameWriter::create(&output).unwrap();
-        while let Some(game) = reader.next_game().unwrap() {
-            writer.write_game(&game).unwrap();
-        }
+        crate::backend::stream_convert(&mut reader, &mut writer, None).unwrap();
 
         let parsed = read_viriformat_games(&output);
         assert_eq!(parsed, games);
@@ -73,10 +71,7 @@ mod tests {
 
         let mut reader = sfbinpack::GameReader::open(&input).unwrap();
         let mut writer = crate::backend::bulletformat::PositionWriter::create(&output).unwrap();
-        while let Some(game) = reader.next_game().unwrap() {
-            writer.write_game(&game).unwrap();
-        }
-        writer.finish().unwrap();
+        crate::backend::stream_convert(&mut reader, &mut writer, None).unwrap();
 
         let parsed = read_bulletformat_positions(&output);
         let expected = vec![
@@ -110,10 +105,7 @@ mod tests {
 
         let mut reader = viriformat::GameReader::open(&input).unwrap();
         let mut writer = crate::backend::bulletformat::PositionWriter::create(&output).unwrap();
-        while let Some(game) = reader.next_game().unwrap() {
-            writer.write_game(&game).unwrap();
-        }
-        writer.finish().unwrap();
+        crate::backend::stream_convert(&mut reader, &mut writer, None).unwrap();
 
         let parsed = read_bulletformat_positions(&output);
         let expected = vec![
@@ -138,6 +130,27 @@ mod tests {
     }
 
     #[test]
+    fn streaming_convert_limit_stops_after_requested_entries() {
+        let input = temp_path("binpack");
+        let output = temp_path("viri");
+        let games = vec![sample_games()[0].clone(), sample_games()[0].clone()];
+
+        write_sfbinpack_games(&input, &games);
+
+        let mut reader = sfbinpack::GameReader::open(&input).unwrap();
+        let mut writer = viriformat::GameWriter::create(&output).unwrap();
+        crate::backend::stream_convert(&mut reader, &mut writer, Some(1)).unwrap();
+
+        let parsed = read_viriformat_games(&output);
+        let mut expected = games[0].clone();
+        expected.positions.truncate(1);
+        assert_eq!(parsed, vec![expected]);
+
+        let _ = std::fs::remove_file(input);
+        let _ = std::fs::remove_file(output);
+    }
+
+    #[test]
     fn convert_text_to_bulletformat() {
         let input = temp_path("txt");
         let output = temp_path("bf");
@@ -151,7 +164,7 @@ mod tests {
         )
         .unwrap();
 
-        crate::backend::bulletformat::convert_text_file(&input, &output).unwrap();
+        crate::backend::bulletformat::convert_text_file(&input, &output, None).unwrap();
 
         let parsed = read_bulletformat_positions(&output);
         let expected = vec![
@@ -179,16 +192,11 @@ mod tests {
 
         let mut reader = sfbinpack::GameReader::open(&input).unwrap();
         let mut writer = viriformat::GameWriter::create(&viriformat_output).unwrap();
-        while let Some(game) = reader.next_game().unwrap() {
-            writer.write_game(&game).unwrap();
-        }
+        crate::backend::stream_convert(&mut reader, &mut writer, None).unwrap();
 
         let mut reader = viriformat::GameReader::open(&viriformat_output).unwrap();
         let mut writer = sfbinpack::GameWriter::create(&roundtrip_output).unwrap();
-        while let Some(game) = reader.next_game().unwrap() {
-            writer.write_game(&game).unwrap();
-        }
-        writer.finish();
+        crate::backend::stream_convert(&mut reader, &mut writer, None).unwrap();
 
         let original = std::fs::read(&input).unwrap();
         let roundtrip = std::fs::read(&roundtrip_output).unwrap();
