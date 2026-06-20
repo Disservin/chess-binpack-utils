@@ -18,10 +18,11 @@ cargo install --path .
 
 ## Commands
 
-The main CLI exposes three operations:
+The main CLI exposes four operations:
 
 - `convert`
 - `unique`
+- `inspect`
 - `benchmark`
 
 After that, you can run commands directly:
@@ -29,6 +30,7 @@ After that, you can run commands directly:
 ```bash
 chess-binpack-utils convert --input test/ep1.binpack --output out.viri
 chess-binpack-utils unique --input test/ep1.binpack
+chess-binpack-utils inspect --input test/ep1.binpack
 chess-binpack-utils benchmark --input test/ep1.binpack
 ```
 
@@ -147,6 +149,33 @@ To stop after a fixed number of positions, pass `--limit <N>`:
 
 ```bash
 chess-binpack-utils unique --input test/ep1.binpack --limit 1000
+```
+
+### Inspect
+
+```bash
+chess-binpack-utils inspect --input <INPUT>
+```
+
+This prints the input entries to stdout.
+
+Supported formats:
+
+- `sfbinpack`
+- `viriformat`
+- `bulletformat`
+- `bulletplain`
+
+You can override inference explicitly:
+
+```bash
+chess-binpack-utils inspect --format <sfbinpack|viriformat|bulletformat|bulletplain> --input <INPUT>
+```
+
+To stop after a fixed number of entries, pass `--limit <N>`:
+
+```bash
+chess-binpack-utils inspect --input test/ep1.binpack --limit 10
 ```
 
 ### Benchmark

@@ -5,6 +5,7 @@ use clap::{Parser, ValueEnum};
 use crate::backend;
 use crate::benchmark;
 use crate::error::{Error, Result};
+use crate::inspect;
 use crate::interrupt;
 use crate::unique;
 
@@ -20,6 +21,7 @@ pub struct Cli {
 pub enum Command {
     Convert(ConvertCommand),
     Unique(UniqueCommand),
+    Inspect(InspectCommand),
     Benchmark(BenchmarkCommand),
 }
 
@@ -147,10 +149,21 @@ pub struct BenchmarkCommand {
     pub input: PathBuf,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct InspectCommand {
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
+    #[arg(long)]
+    pub input: PathBuf,
+    #[arg(long)]
+    pub limit: Option<u128>,
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Convert(command) => convert(command),
         Command::Unique(command) => unique_command(command),
+        Command::Inspect(command) => inspect_command(command),
         Command::Benchmark(command) => benchmark_command(command),
     }
 }
@@ -214,4 +227,9 @@ fn unique_command(command: UniqueCommand) -> Result<()> {
 fn benchmark_command(command: BenchmarkCommand) -> Result<()> {
     interrupt::install_handler()?;
     benchmark::run(&command)
+}
+
+fn inspect_command(command: InspectCommand) -> Result<()> {
+    interrupt::install_handler()?;
+    inspect::run(&command)
 }

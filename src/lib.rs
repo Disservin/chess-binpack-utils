@@ -3,6 +3,7 @@ pub mod benchmark;
 pub mod cli;
 pub mod convert;
 pub mod error;
+pub mod inspect;
 pub mod interrupt;
 pub mod model;
 pub mod unique;
@@ -251,6 +252,68 @@ mod tests {
         )
         .unwrap();
         assert_eq!(unique, 2);
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn inspect_prints_sfbinpack_entries() {
+        let path = temp_path("binpack");
+
+        write_sfbinpack_games(&path, &sample_games());
+
+        let mut output = Vec::new();
+        crate::inspect::inspect_to_writer(
+            &mut output,
+            &path,
+            crate::cli::Format::Sfbinpack,
+            Some(2),
+        )
+        .unwrap();
+
+        let text = String::from_utf8(output).unwrap();
+        assert_eq!(
+            text,
+            concat!(
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | e2e4 | 24 | 0 | 1-0\n",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1 | e7e5 | -18 | 1 | 1-0\n"
+            )
+        );
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn inspect_prints_bulletplain_entries() {
+        let path = temp_path("txt");
+
+        std::fs::write(
+            &path,
+            concat!(
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 24 | 1.0\n",
+                "\n",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1 | 18 | 1.0\n"
+            ),
+        )
+        .unwrap();
+
+        let mut output = Vec::new();
+        crate::inspect::inspect_to_writer(
+            &mut output,
+            &path,
+            crate::cli::Format::Bulletplain,
+            Some(2),
+        )
+        .unwrap();
+
+        let text = String::from_utf8(output).unwrap();
+        assert_eq!(
+            text,
+            concat!(
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 24 | 1.0\n",
+                "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1 | 18 | 1.0\n"
+            )
+        );
 
         let _ = std::fs::remove_file(path);
     }
