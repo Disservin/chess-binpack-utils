@@ -4,6 +4,7 @@ use clap::{Parser, ValueEnum};
 
 use crate::backend;
 use crate::error::{Error, Result};
+use crate::interrupt;
 
 #[derive(Debug, Parser)]
 #[command(name = "chess-binpack-utils")]
@@ -35,14 +36,31 @@ impl Format {
             Self::Bulletplain => "bulletplain",
         }
     }
+
+    fn from_path(path: &std::path::Path) -> Result<Self> {
+        let extension = path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .ok_or_else(|| Error::InvalidFormat(format!("could not infer format from path: {path:?}")))?;
+
+        match extension {
+            "vf" | "viri" | "viriformat" => Ok(Self::Viriformat),
+            "sf" | "sfbinpack" | "binpack" => Ok(Self::Sfbinpack),
+            "bf" | "bullet" | "bulletformat" => Ok(Self::Bulletformat),
+            "txt" | "bulletplain" => Ok(Self::Bulletplain),
+            _ => Err(Error::InvalidFormat(format!(
+                "unknown file extension for format inference: {extension}"
+            ))),
+        }
+    }
 }
 
 #[derive(Debug, clap::Args)]
 pub struct ConvertCommand {
     #[arg(long, value_enum)]
-    pub from: Format,
+    pub from: Option<Format>,
     #[arg(long, value_enum)]
-    pub to: Format,
+    pub to: Option<Format>,
     #[arg(long)]
     pub input: PathBuf,
     #[arg(long)]
@@ -56,7 +74,16 @@ pub fn run(cli: Cli) -> Result<()> {
 }
 
 fn convert(command: ConvertCommand) -> Result<()> {
-    match (command.from, command.to) {
+    interrupt::install_handler()?;
+
+    let from = command
+        .from
+        .unwrap_or(Format::from_path(command.input.as_path())?);
+    let to = command
+        .to
+        .unwrap_or(Format::from_path(command.output.as_path())?);
+
+    match (from, to) {
         (Format::Bulletplain, Format::Bulletformat) => {
             backend::bulletformat::convert_text_file(&command.input, &command.output)
         }

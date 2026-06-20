@@ -37,10 +37,31 @@ Format names:
 ## Usage
 
 ```bash
+cargo run -- convert --input <INPUT> --output <OUTPUT>
+```
+
+Formats are inferred from file extensions when possible:
+
+- `.vf`, `.viri`, `.viriformat` -> `viriformat`
+- `.sf`, `.sfbinpack`, `.binpack` -> `sfbinpack`
+- `.bf`, `.bullet`, `.bulletformat` -> `bulletformat`
+- `.txt`, `.bulletplain` -> `bulletplain`
+
+You can still override inference explicitly:
+
+```bash
 cargo run -- convert --from <sfbinpack|viriformat|bulletformat|bulletplain> --to <sfbinpack|viriformat|bulletformat> --input <INPUT> --output <OUTPUT>
 ```
 
-Example:
+Example with inferred formats:
+
+```bash
+cargo run -- convert \
+  --input test/ep1.binpack \
+  --output out.viri
+```
+
+Example with explicit formats:
 
 ```bash
 cargo run -- convert \
@@ -54,8 +75,6 @@ Reverse conversion:
 
 ```bash
 cargo run -- convert \
-  --from viriformat \
-  --to sfbinpack \
   --input out.viri \
   --output roundtrip.binpack
 ```
@@ -86,6 +105,36 @@ cargo test
 ```
 
 The test suite includes round-trip checks for both formats and a fixture-based conversion test using `test/ep1.binpack`.
+
+## Read Speed Test
+
+The repo also includes a small benchmark binary for measuring read throughput:
+
+```bash
+cargo run --release --bin read-speed -- <INPUT>
+```
+
+It supports `viriformat`, `sfbinpack`, and `bulletformat` files.
+The input format is inferred from the file extension using the same mapping as `convert`.
+
+Examples:
+
+```bash
+cargo run --release --bin read-speed -- test/ep1.binpack
+cargo run --release --bin read-speed -- out.viri
+cargo run --release --bin read-speed -- positions.bf
+```
+
+You can also pass the format explicitly before the path:
+
+```bash
+cargo run --release --bin read-speed -- sfbinpack test/ep1.binpack
+cargo run --release --bin read-speed -- viriformat out.viri
+cargo run --release --bin read-speed -- bulletformat positions.bf
+```
+
+For `viriformat` and `sfbinpack`, it reports throughput in games/sec and positions/sec.
+For `bulletformat`, it reports positions/sec.
 
 ## License
 

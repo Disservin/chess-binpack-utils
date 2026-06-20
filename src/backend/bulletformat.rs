@@ -8,6 +8,7 @@ use bulletformat::ChessBoard;
 use crate::backend;
 use crate::convert::{game_result_to_white_relative, score_to_white_relative};
 use crate::error::{Error, Result};
+use crate::interrupt;
 use crate::model::{GameRecord, PositionMoveEval};
 
 const FLUSH_BATCH_SIZE: usize = 16_384;
@@ -98,6 +99,10 @@ pub fn convert_text_file(input: &Path, output: &Path) -> Result<()> {
     let mut writer = PositionWriter::create(output)?;
 
     for (index, line) in BufReader::new(file).lines().enumerate() {
+        if interrupt::is_requested() {
+            break;
+        }
+
         let line = line.map_err(|source| Error::Io {
             path: input.to_path_buf(),
             source,

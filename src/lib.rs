@@ -2,6 +2,7 @@ pub mod backend;
 pub mod cli;
 pub mod convert;
 pub mod error;
+pub mod interrupt;
 pub mod model;
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 use sfbinpack::chess::{
+    castling_rights::CastlingRights as SfCastlingRights,
     color::Color as SfColor,
     coords::Square as SfSquare,
     r#move::{Move as SfMove, MoveType as SfMoveType},
@@ -84,7 +85,7 @@ pub fn uci_to_sf_move(
     let target = position.piece_at(to);
     let move_type = if bytes.len() == 5 {
         SfMoveType::Promotion
-    } else if piece.piece_type() == SfPieceType::King && target.piece_type() == SfPieceType::Rook {
+    } else if is_sf_castle(piece, from, to, position.castling_rights()) {
         SfMoveType::Castle
     } else if piece.piece_type() == SfPieceType::Pawn
         && to == position.ep_square()
@@ -144,7 +145,7 @@ pub fn uci_to_viri_move(uci: &str, board: &viriformat::chess::board::Board) -> R
     }
 
     let from = parse_viri_square(&uci[0..2])?;
-    let mut to = parse_viri_square(&uci[2..4])?;
+    let to = parse_viri_square(&uci[2..4])?;
     let moved_piece = board.piece_at(from).ok_or_else(|| {
         Error::InvalidViriformat(format!("no piece on source square for move {uci}"))
     })?;
@@ -156,19 +157,22 @@ pub fn uci_to_viri_move(uci: &str, board: &viriformat::chess::board::Board) -> R
     }
 
     if moved_piece.piece_type() == viriformat::chess::piece::PieceType::King {
-        to = match to.to_string().as_str() {
-            "g1" => ViriSquare::H1,
-            "c1" => ViriSquare::A1,
-            "g8" => ViriSquare::H8,
-            "c8" => ViriSquare::A8,
-            _ => to,
+        let rights = board.castling_rights();
+        let is_castle = match (from, to) {
+            (ViriSquare::E1, ViriSquare::G1) => rights.wk == Some(ViriSquare::H1),
+            (ViriSquare::E1, ViriSquare::C1) => rights.wq == Some(ViriSquare::A1),
+            (ViriSquare::E8, ViriSquare::G8) => rights.bk == Some(ViriSquare::H8),
+            (ViriSquare::E8, ViriSquare::C8) => rights.bq == Some(ViriSquare::A8),
+            _ => false,
         };
-        if captured_piece.is_some()
-            || matches!(
-                to,
-                ViriSquare::H1 | ViriSquare::A1 | ViriSquare::H8 | ViriSquare::A8
-            )
-        {
+        if is_castle {
+            let to = match to {
+                ViriSquare::G1 => ViriSquare::H1,
+                ViriSquare::C1 => ViriSquare::A1,
+                ViriSquare::G8 => ViriSquare::H8,
+                ViriSquare::C8 => ViriSquare::A8,
+                _ => to,
+            };
             return Ok(ViriMove::new_with_flags(from, to, MoveFlags::Castle));
         }
     }
@@ -210,6 +214,20 @@ fn parse_sf_promotion(ch: char, color: SfColor) -> Result<SfPiece> {
     Ok(SfPiece::new(piece_type, color))
 }
 
+fn is_sf_castle(piece: SfPiece, from: SfSquare, to: SfSquare, rights: SfCastlingRights) -> bool {
+    if piece.piece_type() != SfPieceType::King {
+        return false;
+    }
+
+    match (piece.color(), from, to) {
+        (SfColor::White, SfSquare::E1, SfSquare::G1) => rights.contains(SfCastlingRights::WHITE_KING_SIDE),
+        (SfColor::White, SfSquare::E1, SfSquare::C1) => rights.contains(SfCastlingRights::WHITE_QUEEN_SIDE),
+        (SfColor::Black, SfSquare::E8, SfSquare::G8) => rights.contains(SfCastlingRights::BLACK_KING_SIDE),
+        (SfColor::Black, SfSquare::E8, SfSquare::C8) => rights.contains(SfCastlingRights::BLACK_QUEEN_SIDE),
+        _ => false,
+    }
+}
+
 fn parse_viri_promotion(ch: char) -> Result<ViriPieceType> {
     match ch {
         'n' => Ok(ViriPieceType::Knight),
@@ -236,6 +254,7 @@ fn parse_sf_piece_type(piece_type: ViriPieceType) -> Result<SfPieceType> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use viriformat::chess::{board::Board, types::Square as ViriSquare};
 
     #[test]
     fn result_mapping_roundtrips() {
@@ -257,5 +276,55 @@ mod tests {
             score_to_white_relative(42, "8/8/8/8/8/8/8/8 b - - 0 1").unwrap(),
             -42
         );
+    }
+
+    #[test]
+    fn uci_to_viri_castle_keeps_king_destination() {
+        let mut board = Board::new();
+        board
+            .set_from_fen("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1", false)
+            .unwrap();
+
+        let mv = uci_to_viri_move("e8g8", &board).unwrap();
+
+        assert!(mv.is_castle());
+        assert_eq!(mv.to(), ViriSquare::H8);
+    }
+
+    #[test]
+    fn viri_castle_maps_to_sf_rook_square() {
+        let mv = ViriMove::new_with_flags(ViriSquare::E1, ViriSquare::A1, MoveFlags::Castle);
+        let sf_move = viri_move_to_sf_move(mv).unwrap();
+
+        assert_eq!(sf_move.mtype(), SfMoveType::Castle);
+        assert_eq!(sf_move.to(), SfSquare::A1);
+        assert_eq!(sf_move.as_uci(), "e1c1");
+    }
+
+    #[test]
+    fn uci_to_viri_non_castle_king_move_stays_normal_without_rights() {
+        let mut board = Board::new();
+        board
+            .set_from_fen("4k3/8/8/8/8/8/8/4K3 b - - 0 1", false)
+            .unwrap();
+
+        let mv = uci_to_viri_move("e8g8", &board).unwrap();
+
+        assert!(!mv.is_castle());
+        assert_eq!(mv.to(), ViriSquare::G8);
+    }
+
+    #[test]
+    fn uci_to_sf_castle_maps_to_sf_rook_square() {
+        let position = sfbinpack::chess::position::Position::from_fen(
+            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        )
+        .unwrap();
+
+        let mv = uci_to_sf_move("e1g1", &position).unwrap();
+
+        assert_eq!(mv.mtype(), SfMoveType::Castle);
+        assert_eq!(mv.to(), SfSquare::H1);
+        assert_eq!(mv.as_uci(), "e1g1");
     }
 }

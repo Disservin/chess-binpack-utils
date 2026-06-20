@@ -1,4 +1,5 @@
 use crate::error::Result;
+use crate::interrupt;
 use crate::model::GameRecord;
 
 pub mod bulletformat;
@@ -23,6 +24,9 @@ where
     W: GameWriter,
 {
     while let Some(game) = reader.next_game()? {
+        if interrupt::is_requested() {
+            break;
+        }
         writer.write_game(&game)?;
     }
 

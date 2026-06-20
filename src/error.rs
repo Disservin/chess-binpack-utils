@@ -17,6 +17,8 @@ pub enum Error {
         #[source]
         source: std::io::Error,
     },
+    #[error("failed to install Ctrl-C handler: {0}")]
+    SignalHandler(#[source] ctrlc::Error),
     #[error("sfbinpack reader error: {0}")]
     SfbinpackReader(#[from] sfbinpack::CompressedReaderError),
     #[error("sfbinpack writer error: {0}")]
