@@ -11,6 +11,8 @@ pub enum Error {
     },
     #[error("invalid format name: {0}")]
     InvalidFormat(String),
+    #[error("invalid limit value: {0}")]
+    InvalidLimit(u128),
     #[error("I/O error while accessing {path:?}: {source}")]
     Io {
         path: PathBuf,
@@ -29,6 +31,8 @@ pub enum Error {
     InvalidViriformat(String),
     #[error("bulletformat data is malformed: {0}")]
     InvalidBulletformat(String),
+    #[error("game data is malformed: {0}")]
+    InvalidGameData(String),
     #[error("invalid FEN: {0}")]
     InvalidFen(String),
     #[error("sfbinpack position could not be expressed as FEN: {0:?}")]

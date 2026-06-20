@@ -1,12 +1,13 @@
 # chess-binpack-utils
 
-Small Rust CLI for converting chess training data between `sfbinpack`, `viriformat`, and `bulletformat`.
+Small Rust CLI for converting chess training data between `sfbinpack`, `viriformat`, and `bulletformat`, and for counting unique positions in game-oriented inputs.
 
 ## What It Does
 
 - Reads game-oriented training data from one backend
 - Streams it into the other backend
 - Preserves move sequence, evaluation score, ply, initial FEN, and game result
+- Counts unique positions in `sfbinpack` and `viriformat` files using Zobrist hashes
 
 Supported conversions:
 
@@ -35,6 +36,8 @@ Format names:
 - `bulletplain`: Bullet's plain-text chess format, where each line is `<FEN> | <score> | <result>`
 
 ## Usage
+
+### Convert
 
 ```bash
 cargo run -- convert --input <INPUT> --output <OUTPUT>
@@ -100,6 +103,36 @@ cargo run -- convert \
   --to bulletformat \
   --input positions.txt \
   --output positions.bf
+```
+
+### Unique
+
+```bash
+cargo run -- unique --input <INPUT>
+```
+
+This prints the number of unique positions found in the input.
+
+Supported backends:
+
+- `sfbinpack`
+- `viriformat`
+
+The backend is inferred from the input file extension when possible:
+
+- `.vf`, `.viri`, `.viriformat` -> `viriformat`
+- `.sf`, `.sfbinpack`, `.binpack` -> `sfbinpack`
+
+You can also set it explicitly:
+
+```bash
+cargo run -- unique --backend <sfbinpack|viriformat> --input <INPUT>
+```
+
+To stop after a fixed number of positions, pass `--limit <N>`:
+
+```bash
+cargo run -- unique --input test/ep1.binpack --limit 1000
 ```
 
 Where each input line is:

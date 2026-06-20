@@ -4,6 +4,7 @@ pub mod convert;
 pub mod error;
 pub mod interrupt;
 pub mod model;
+pub mod unique;
 
 #[cfg(test)]
 mod tests {
@@ -204,6 +205,53 @@ mod tests {
 
         let _ = std::fs::remove_file(viriformat_output);
         let _ = std::fs::remove_file(roundtrip_output);
+    }
+
+    #[test]
+    fn unique_positions_counts_sfbinpack_positions() {
+        let path = temp_path("binpack");
+        let games = vec![sample_games()[0].clone(), sample_games()[0].clone()];
+
+        write_sfbinpack_games(&path, &games);
+
+        let unique =
+            crate::unique::unique_positions_from_path(&path, None, crate::cli::Backend::Sfbinpack)
+                .unwrap();
+        assert_eq!(unique, 3);
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn unique_positions_counts_viriformat_positions() {
+        let path = temp_path("viri");
+        let games = vec![sample_games()[0].clone(), sample_games()[0].clone()];
+
+        write_viriformat_games(&path, &games);
+
+        let unique =
+            crate::unique::unique_positions_from_path(&path, None, crate::cli::Backend::Viriformat)
+                .unwrap();
+        assert_eq!(unique, 3);
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn unique_positions_respects_limit() {
+        let path = temp_path("binpack");
+
+        write_sfbinpack_games(&path, &sample_games());
+
+        let unique = crate::unique::unique_positions_from_path(
+            &path,
+            Some(2),
+            crate::cli::Backend::Sfbinpack,
+        )
+        .unwrap();
+        assert_eq!(unique, 2);
+
+        let _ = std::fs::remove_file(path);
     }
 
     fn sample_games() -> Vec<GameRecord> {

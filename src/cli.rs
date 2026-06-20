@@ -5,6 +5,7 @@ use clap::{Parser, ValueEnum};
 use crate::backend;
 use crate::error::{Error, Result};
 use crate::interrupt;
+use crate::unique;
 
 #[derive(Debug, Parser)]
 #[command(name = "chess-binpack-utils")]
@@ -17,6 +18,39 @@ pub struct Cli {
 #[derive(Debug, clap::Subcommand)]
 pub enum Command {
     Convert(ConvertCommand),
+    Unique(UniqueCommand),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum Backend {
+    Sfbinpack,
+    Viriformat,
+}
+
+impl Backend {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Sfbinpack => "sfbinpack",
+            Self::Viriformat => "viriformat",
+        }
+    }
+
+    fn from_path(path: &std::path::Path) -> Result<Self> {
+        let extension = path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .ok_or_else(|| {
+                Error::InvalidFormat(format!("could not infer backend from path: {path:?}"))
+            })?;
+
+        match extension {
+            "vf" | "viri" | "viriformat" => Ok(Self::Viriformat),
+            "sf" | "sfbinpack" | "binpack" => Ok(Self::Sfbinpack),
+            _ => Err(Error::InvalidFormat(format!(
+                "unknown file extension for backend inference: {extension}"
+            ))),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -41,7 +75,9 @@ impl Format {
         let extension = path
             .extension()
             .and_then(|extension| extension.to_str())
-            .ok_or_else(|| Error::InvalidFormat(format!("could not infer format from path: {path:?}")))?;
+            .ok_or_else(|| {
+                Error::InvalidFormat(format!("could not infer format from path: {path:?}"))
+            })?;
 
         match extension {
             "vf" | "viri" | "viriformat" => Ok(Self::Viriformat),
@@ -69,9 +105,20 @@ pub struct ConvertCommand {
     pub limit: Option<u128>,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct UniqueCommand {
+    #[arg(long, value_enum)]
+    pub backend: Option<Backend>,
+    #[arg(long)]
+    pub input: PathBuf,
+    #[arg(long)]
+    pub limit: Option<u128>,
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Convert(command) => convert(command),
+        Command::Unique(command) => unique_command(command),
     }
 }
 
@@ -114,4 +161,19 @@ fn convert(command: ConvertCommand) -> Result<()> {
             to: to.name(),
         }),
     }
+}
+
+fn unique_command(command: UniqueCommand) -> Result<()> {
+    interrupt::install_handler()?;
+
+    let backend = command
+        .backend
+        .unwrap_or(Backend::from_path(command.input.as_path())?);
+    let limit = command
+        .limit
+        .map(|limit| usize::try_from(limit).map_err(|_| Error::InvalidLimit(limit)))
+        .transpose()?;
+    let unique = unique::unique_positions_from_path(&command.input, limit, backend)?;
+    println!("{unique}");
+    Ok(())
 }

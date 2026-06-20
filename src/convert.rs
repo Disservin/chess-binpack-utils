@@ -220,10 +220,18 @@ fn is_sf_castle(piece: SfPiece, from: SfSquare, to: SfSquare, rights: SfCastling
     }
 
     match (piece.color(), from, to) {
-        (SfColor::White, SfSquare::E1, SfSquare::G1) => rights.contains(SfCastlingRights::WHITE_KING_SIDE),
-        (SfColor::White, SfSquare::E1, SfSquare::C1) => rights.contains(SfCastlingRights::WHITE_QUEEN_SIDE),
-        (SfColor::Black, SfSquare::E8, SfSquare::G8) => rights.contains(SfCastlingRights::BLACK_KING_SIDE),
-        (SfColor::Black, SfSquare::E8, SfSquare::C8) => rights.contains(SfCastlingRights::BLACK_QUEEN_SIDE),
+        (SfColor::White, SfSquare::E1, SfSquare::G1) => {
+            rights.contains(SfCastlingRights::WHITE_KING_SIDE)
+        }
+        (SfColor::White, SfSquare::E1, SfSquare::C1) => {
+            rights.contains(SfCastlingRights::WHITE_QUEEN_SIDE)
+        }
+        (SfColor::Black, SfSquare::E8, SfSquare::G8) => {
+            rights.contains(SfCastlingRights::BLACK_KING_SIDE)
+        }
+        (SfColor::Black, SfSquare::E8, SfSquare::C8) => {
+            rights.contains(SfCastlingRights::BLACK_QUEEN_SIDE)
+        }
         _ => false,
     }
 }
@@ -316,10 +324,9 @@ mod tests {
 
     #[test]
     fn uci_to_sf_castle_maps_to_sf_rook_square() {
-        let position = sfbinpack::chess::position::Position::from_fen(
-            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
-        )
-        .unwrap();
+        let position =
+            sfbinpack::chess::position::Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+                .unwrap();
 
         let mv = uci_to_sf_move("e1g1", &position).unwrap();
 

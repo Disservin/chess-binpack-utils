@@ -9,6 +9,7 @@ anyhow = "1.0"
 bulletformat = "1.8.0"
 clap = { version = "4.5.8", features = ["derive"] }
 ctrlc = "3.4.5"
+shakmaty = "0.27"
 sfbinpack = "0.6.3"
 thiserror = "2.0.12"
 viriformat = "3.0.0"
