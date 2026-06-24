@@ -6,6 +6,7 @@ pub mod error;
 pub mod inspect;
 pub mod interrupt;
 pub mod model;
+pub mod shuffle;
 pub mod unique;
 pub mod validate;
 
@@ -346,6 +347,64 @@ mod tests {
         let _ = std::fs::remove_file(path);
     }
 
+    #[test]
+    fn shuffle_sfbinpack_preserves_games() {
+        let input = temp_path("binpack");
+        let output = temp_path("binpack");
+        let games = sample_games_collection();
+
+        write_sfbinpack_games(&input, &games);
+        crate::shuffle::run(&crate::cli::ShuffleCommand {
+            backend: Some(crate::cli::Backend::Sfbinpack),
+            input: input.clone(),
+            output: output.clone(),
+            split: 1,
+            seed: Some(7),
+        })
+        .unwrap();
+
+        let shuffled = read_sfbinpack_games(&output);
+        assert_same_games(shuffled, games);
+
+        let _ = std::fs::remove_file(input);
+        let _ = std::fs::remove_file(output);
+    }
+
+    #[test]
+    fn shuffle_viriformat_split_preserves_games() {
+        let input = temp_path("viri");
+        let output = temp_path("viri");
+        let output_0 = output.with_file_name(format!(
+            "{}_0.{}",
+            output.file_stem().unwrap().to_str().unwrap(),
+            output.extension().unwrap().to_str().unwrap()
+        ));
+        let output_1 = output.with_file_name(format!(
+            "{}_1.{}",
+            output.file_stem().unwrap().to_str().unwrap(),
+            output.extension().unwrap().to_str().unwrap()
+        ));
+        let games = sample_games_collection();
+
+        write_viriformat_games(&input, &games);
+        crate::shuffle::run(&crate::cli::ShuffleCommand {
+            backend: Some(crate::cli::Backend::Viriformat),
+            input: input.clone(),
+            output: output.clone(),
+            split: 2,
+            seed: Some(7),
+        })
+        .unwrap();
+
+        let mut shuffled = read_viriformat_games(&output_0);
+        shuffled.extend(read_viriformat_games(&output_1));
+        assert_same_games(shuffled, games);
+
+        let _ = std::fs::remove_file(input);
+        let _ = std::fs::remove_file(output_0);
+        let _ = std::fs::remove_file(output_1);
+    }
+
     fn sample_games() -> Vec<GameRecord> {
         vec![GameRecord {
             initial_fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
@@ -412,6 +471,84 @@ mod tests {
             .unwrap()
             .map_positions(|position| positions.push(*position));
         positions
+    }
+
+    fn sample_games_collection() -> Vec<GameRecord> {
+        vec![
+            sample_games()[0].clone(),
+            GameRecord {
+                initial_fen:
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+                result: GameResult::Draw,
+                positions: vec![
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                            .to_string(),
+                        uci: "d2d4".to_string(),
+                        score: 12,
+                        ply: 0,
+                    },
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1"
+                            .to_string(),
+                        uci: "d7d5".to_string(),
+                        score: -10,
+                        ply: 1,
+                    },
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2"
+                            .to_string(),
+                        uci: "c2c4".to_string(),
+                        score: 8,
+                        ply: 2,
+                    },
+                ],
+            },
+            GameRecord {
+                initial_fen:
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+                result: GameResult::BlackWin,
+                positions: vec![
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                            .to_string(),
+                        uci: "c2c4".to_string(),
+                        score: 5,
+                        ply: 0,
+                    },
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1"
+                            .to_string(),
+                        uci: "e7e5".to_string(),
+                        score: -20,
+                        ply: 1,
+                    },
+                    PositionMoveEval {
+                        fen: "rnbqkbnr/pppp1ppp/8/4p3/2P5/8/PP1PPPPP/RNBQKBNR w KQkq - 0 2"
+                            .to_string(),
+                        uci: "b1c3".to_string(),
+                        score: 3,
+                        ply: 2,
+                    },
+                ],
+            },
+        ]
+    }
+
+    fn assert_same_games(mut actual: Vec<GameRecord>, mut expected: Vec<GameRecord>) {
+        let key = |game: &GameRecord| {
+            let moves = game
+                .positions
+                .iter()
+                .map(|position| position.uci.as_str())
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{}|{:?}|{moves}", game.initial_fen, game.result)
+        };
+
+        actual.sort_by_cached_key(&key);
+        expected.sort_by_cached_key(&key);
+        assert_eq!(actual, expected);
     }
 
     fn temp_path(extension: &str) -> PathBuf {

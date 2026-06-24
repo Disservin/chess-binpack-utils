@@ -18,13 +18,14 @@ cargo install --path .
 
 ## Commands
 
-The main CLI exposes four operations:
+The main CLI exposes these operations:
 
 - `convert`
 - `unique`
 - `inspect`
 - `benchmark`
 - `validate`
+- `shuffle`
 
 After that, you can run commands directly:
 
@@ -34,6 +35,7 @@ chess-binpack-utils unique --input test/ep1.binpack
 chess-binpack-utils inspect --input test/ep1.binpack
 chess-binpack-utils benchmark --input test/ep1.binpack
 chess-binpack-utils validate --input test/ep1.binpack
+chess-binpack-utils shuffle --input test/ep1.binpack --output shuffled.binpack
 ```
 
 Formats are inferred from file extensions when possible:
@@ -209,6 +211,35 @@ chess-binpack-utils benchmark --input test/ep1.binpack
 chess-binpack-utils benchmark --input out.viri
 chess-binpack-utils benchmark --input positions.bf
 ```
+
+### Shuffle
+
+```bash
+chess-binpack-utils shuffle --input <INPUT> --output <OUTPUT>
+```
+
+This shuffles game records without converting through an intermediate format.
+
+Supported backends:
+
+- `sfbinpack`
+- `viriformat`
+
+The backend is inferred from the input file extension when possible, or you can set it explicitly:
+
+```bash
+chess-binpack-utils shuffle --backend <sfbinpack|viriformat> --input <INPUT> --output <OUTPUT>
+```
+
+To split the shuffled stream across multiple files in round-robin order, pass `--split <N>`:
+
+```bash
+chess-binpack-utils shuffle --input test/ep1.binpack --output shuffled.binpack --split 4
+```
+
+That produces `shuffled_0.binpack` through `shuffled_3.binpack`.
+
+To make the shuffle deterministic, pass `--seed <N>`.
 
 ### Validate
 

@@ -7,6 +7,7 @@ use crate::benchmark;
 use crate::error::{Error, Result};
 use crate::inspect;
 use crate::interrupt;
+use crate::shuffle;
 use crate::unique;
 use crate::validate;
 
@@ -25,6 +26,7 @@ pub enum Command {
     Inspect(InspectCommand),
     Benchmark(BenchmarkCommand),
     Validate(ValidateCommand),
+    Shuffle(ShuffleCommand),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
@@ -169,6 +171,20 @@ pub struct ValidateCommand {
     pub input: PathBuf,
 }
 
+#[derive(Debug, clap::Args)]
+pub struct ShuffleCommand {
+    #[arg(long, value_enum)]
+    pub backend: Option<Backend>,
+    #[arg(long)]
+    pub input: PathBuf,
+    #[arg(long)]
+    pub output: PathBuf,
+    #[arg(long, default_value_t = 1)]
+    pub split: usize,
+    #[arg(long)]
+    pub seed: Option<u64>,
+}
+
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Convert(command) => convert(command),
@@ -176,6 +192,7 @@ pub fn run(cli: Cli) -> Result<()> {
         Command::Inspect(command) => inspect_command(command),
         Command::Benchmark(command) => benchmark_command(command),
         Command::Validate(command) => validate_command(command),
+        Command::Shuffle(command) => shuffle_command(command),
     }
 }
 
@@ -248,4 +265,9 @@ fn inspect_command(command: InspectCommand) -> Result<()> {
 fn validate_command(command: ValidateCommand) -> Result<()> {
     interrupt::install_handler()?;
     validate::run(&command)
+}
+
+fn shuffle_command(command: ShuffleCommand) -> Result<()> {
+    interrupt::install_handler()?;
+    shuffle::run(&command)
 }

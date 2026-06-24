@@ -13,6 +13,10 @@ pub enum Error {
     InvalidFormat(String),
     #[error("invalid limit value: {0}")]
     InvalidLimit(u128),
+    #[error("invalid split count: {0}")]
+    InvalidSplitCount(usize),
+    #[error("output path already exists: {0:?}")]
+    OutputExists(PathBuf),
     #[error("I/O error while accessing {path:?}: {source}")]
     Io {
         path: PathBuf,
